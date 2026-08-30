@@ -21,3 +21,9 @@ local_settings.py
 .vscode/
 .idea/
 .DS_Store
+
+# Scratch files for practice
+scratch*.py
+
+# Local environment secrets
+.env
