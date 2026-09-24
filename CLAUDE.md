@@ -29,6 +29,23 @@ across all my devices via git.
   **Why:** the point of this repo is learning Django the way it is actually run
   in production, not just the sqlite happy path.
 
+- **Every session starts at `CURRICULUM.md`.** Read it first, before anything
+  else. It holds the phase checklist, the per-phase assignments (one easy, one
+  medium-hard) and the interview drills.
+  - Open the session by reporting where we are: last completed phase, what is
+    next, and which assignments/drills are still outstanding.
+  - Tick boxes as things are genuinely finished — notes written, assignments
+    done, drill answered from memory. Don't tick on my say-so alone.
+  - I own the curriculum's completeness. If a topic that interviews ask about
+    is missing, add it — with its assignments and drill — rather than waiting
+    to be asked.
+  - Python interludes are not optional filler. Django interviews are half
+    Python interviews; keep pulling him back to them.
+
+  **Why:** the goal of this repo is interview readiness, not finishing a
+  tutorial. Without a tracked plan, sessions drift to whatever is interesting
+  that day and the boring-but-asked topics never get covered.
+
 ## How this repo works
 
 - It's a self-taught Django tutorial for someone coming from Node/JS.

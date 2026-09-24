@@ -16,22 +16,13 @@
 | 6 | [Postgres in Docker and DBeaver](notes/06-postgres-in-docker-and-dbeaver.md) | `docker-compose.yml`, named volumes, `.env` + `python-dotenv`, psycopg 3, DBeaver, `migrate`, `django_migrations` |
 | 7 | [The ORM](notes/07-the-orm.md) | `manage.py shell`, create/filter/get/update/delete, `__` lookups, lazy QuerySets, `Q`/`F`, cheatsheet |
 | 8 | [Relations](notes/08-relations.md) | `ForeignKey`, `project_id`, `related_name`, spanning `__`, N+1 and `select_related`, `on_delete` |
+| 9 | [The Django Admin](notes/09-django-admin.md) | `createsuperuser`, registering models, `ModelAdmin`, `list_display`/`list_filter`/`search_fields`, `__str__`, `list_select_related` |
 
-## The Plan (roadmap)
+## The Plan
 
-| Phase | What we learn | Node/JS equivalent | Chapter |
-|-------|---------------|--------------------|---------|
-| 0 | Setup: virtualenv, pip, install Django | `node_modules`, `npm`, `npm install` | 1 (done) |
-| 1 | Python crash course (only what backend needs) | JS syntax vs Python syntax | 3 (started) |
-| 2 | Django project vs app, urls, views, runserver | Express app, routes, controllers | 2, 4 (done) |
-| 3 | Models + migrations + real Postgres | Prisma / Sequelize models | 5, 6 (done) |
-| 3b | The ORM: querysets, filtering | Prisma Client queries | 7 (done) |
-| 3c | Relations: ForeignKey, related managers | Prisma relations | 8 (done) |
-| 4 | Django Admin (free CRUD dashboard) | nothing in Node gives you this free | -- |
-| 5 | Django REST Framework: serializers, viewsets, routers | Zod/Joi validation + Express routers | -- |
-| 6 | Authentication + permissions (JWT) | Passport / jsonwebtoken middleware | -- |
-| 7 | Build the Task Manager API end to end | the real project | -- |
-| 8 | Tests, env vars, deployment basics | Jest, dotenv, PM2/Docker | -- |
+The roadmap, progress checkboxes, assignments and interview drills live in
+**[CURRICULUM.md](CURRICULUM.md)** — one source of truth, read it at the start
+of every session. This file is just the notes index.
 
 **Rules of this tutorial**
 - One step at a time. Run the command, then understand what happened.
