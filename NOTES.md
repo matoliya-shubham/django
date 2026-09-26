@@ -17,6 +17,7 @@
 | 7 | [The ORM](notes/07-the-orm.md) | `manage.py shell`, create/filter/get/update/delete, `__` lookups, lazy QuerySets, `Q`/`F`, cheatsheet |
 | 8 | [Relations](notes/08-relations.md) | `ForeignKey`, `project_id`, `related_name`, spanning `__`, N+1 and `select_related`, `on_delete` |
 | 9 | [The Django Admin](notes/09-django-admin.md) | `createsuperuser`, registering models, `ModelAdmin`, `list_display`/`list_filter`/`search_fields`, `__str__`, `list_select_related` |
+| 10 | [Request Lifecycle & Middleware](notes/10-request-lifecycle-and-middleware.md) | request/response path, the middleware onion, `__init__` vs `__call__`, short-circuiting, `contextvars`, `as_view()`, sessions |
 
 ## The Plan
 

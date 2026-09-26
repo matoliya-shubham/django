@@ -60,7 +60,7 @@ the memory, so a claim with nothing behind it is invisible next time.
 | 4 | Relations | ✅ ch8 | ☐ ☐ | ☐ |
 | 5 | Django Admin | ✅ ch9 | ☐ ☐ | ☐ |
 | P-II | **Python II** — functions, decorators, generators | ☐ | ☐ ☐ | ☐ |
-| 6 | Request lifecycle, middleware, CBVs | ☐ | ☑ ☑ | ☑ |
+| 6 | Request lifecycle, middleware, CBVs | ✅ ch10 | ☑ ☑ | ☑ |
 | 7 | DRF: serializers, viewsets, routers | ☐ | ☐ ☐ | ☐ |
 | P-III | **Python III** — OOP & the object model | ☐ | ☐ ☐ | ☐ |
 | 8 | Auth, custom user, permissions, JWT | ☐ | ☐ ☐ | ☐ |
@@ -72,11 +72,10 @@ the memory, so a claim with nothing behind it is invisible next time.
 | 13 | Settings, env, deployment | ☐ | ☐ ☐ | ☐ |
 | 14 | Capstone: Task Manager API end to end | ☐ | ☐ | ☐ |
 
-**Right now:** Phase 6 (middleware) is fully done — both assignments and the
-drill — but has no dedicated chapter note yet. Phase 5 notes are written; its
-assignments and every earlier drill are still outstanding. Next: write
-Chapter 10 notes for Phase 6, then back to Python II and the Phase 1-5
-backlog.
+**Right now:** Phase 6 is fully closed out — notes, both assignments, drill.
+Phases 0-5 still owe their assignments and drills (notes only). Next new
+material: **Phase 7 (DRF)** or **Python Interlude II** — either is fair game;
+the Phase 1-5 backlog should get picked off in parallel, not skipped forever.
 
 ---
 
@@ -346,7 +345,7 @@ generators, and this is exactly why Django QuerySets are lazy and why
 
 ---
 
-## Phase 6 — Request lifecycle, middleware, CBVs
+## Phase 6 — Request lifecycle, middleware, CBVs ✅ notes (ch10)
 
 - [x] the full request→response path, in order
 - [x] middleware: order, `__call__`, short-circuiting, writing one
