@@ -60,7 +60,7 @@ the memory, so a claim with nothing behind it is invisible next time.
 | 4 | Relations | ✅ ch8 | ☐ ☐ | ☐ |
 | 5 | Django Admin | ✅ ch9 | ☐ ☐ | ☐ |
 | P-II | **Python II** — functions, decorators, generators | ☐ | ☐ ☐ | ☐ |
-| 6 | Request lifecycle, middleware, CBVs | ☐ | ☐ ☐ | ☐ |
+| 6 | Request lifecycle, middleware, CBVs | ☐ | ☑ ☐ | ☐ |
 | 7 | DRF: serializers, viewsets, routers | ☐ | ☐ ☐ | ☐ |
 | P-III | **Python III** — OOP & the object model | ☐ | ☐ ☐ | ☐ |
 | 8 | Auth, custom user, permissions, JWT | ☐ | ☐ ☐ | ☐ |
@@ -73,7 +73,9 @@ the memory, so a claim with nothing behind it is invisible next time.
 | 14 | Capstone: Task Manager API end to end | ☐ | ☐ | ☐ |
 
 **Right now:** Phase 5 notes are written; its assignments and every earlier
-drill are outstanding. Next new material is **Python II**, then **Phase 6**.
+drill are outstanding. Phase 6 assignment 6a (logging middleware) is done;
+6b (request-ID + rate limiting) is next, then back to Python II and the
+Phase 1-5 backlog.
 
 ---
 
