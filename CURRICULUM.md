@@ -60,7 +60,7 @@ the memory, so a claim with nothing behind it is invisible next time.
 | 4 | Relations | ✅ ch8 | ☐ ☐ | ☐ |
 | 5 | Django Admin | ✅ ch9 | ☐ ☐ | ☐ |
 | P-II | **Python II** — functions, decorators, generators | ☐ | ☐ ☐ | ☐ |
-| 6 | Request lifecycle, middleware, CBVs | ☐ | ☑ ☐ | ☐ |
+| 6 | Request lifecycle, middleware, CBVs | ☐ | ☑ ☑ | ☑ |
 | 7 | DRF: serializers, viewsets, routers | ☐ | ☐ ☐ | ☐ |
 | P-III | **Python III** — OOP & the object model | ☐ | ☐ ☐ | ☐ |
 | 8 | Auth, custom user, permissions, JWT | ☐ | ☐ ☐ | ☐ |
@@ -72,10 +72,11 @@ the memory, so a claim with nothing behind it is invisible next time.
 | 13 | Settings, env, deployment | ☐ | ☐ ☐ | ☐ |
 | 14 | Capstone: Task Manager API end to end | ☐ | ☐ | ☐ |
 
-**Right now:** Phase 5 notes are written; its assignments and every earlier
-drill are outstanding. Phase 6 assignment 6a (logging middleware) is done;
-6b (request-ID + rate limiting) is next, then back to Python II and the
-Phase 1-5 backlog.
+**Right now:** Phase 6 (middleware) is fully done — both assignments and the
+drill — but has no dedicated chapter note yet. Phase 5 notes are written; its
+assignments and every earlier drill are still outstanding. Next: write
+Chapter 10 notes for Phase 6, then back to Python II and the Phase 1-5
+backlog.
 
 ---
 
@@ -347,12 +348,12 @@ generators, and this is exactly why Django QuerySets are lazy and why
 
 ## Phase 6 — Request lifecycle, middleware, CBVs
 
-- [ ] the full request→response path, in order
-- [ ] middleware: order, `__call__`, short-circuiting, writing one
-- [ ] `HttpRequest` / `HttpResponse` anatomy
-- [ ] function-based vs class-based views; `as_view()`
+- [x] the full request→response path, in order
+- [x] middleware: order, `__call__`, short-circuiting, writing one
+- [x] `HttpRequest` / `HttpResponse` anatomy
+- [x] function-based vs class-based views; `as_view()`
 - [ ] generic CBVs (`ListView`, `DetailView`) and the MRO/mixin pattern
-- [ ] sessions and cookies
+- [x] sessions and cookies
 
 ### Assignment 6a (easy)
 Write a middleware that logs method, path, status and duration for every
