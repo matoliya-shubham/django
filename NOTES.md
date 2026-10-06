@@ -19,6 +19,15 @@
 | 9 | [The Django Admin](notes/09-django-admin.md) | `createsuperuser`, registering models, `ModelAdmin`, `list_display`/`list_filter`/`search_fields`, `__str__`, `list_select_related` |
 | 10 | [Request Lifecycle & Middleware](notes/10-request-lifecycle-and-middleware.md) | request/response path, the middleware onion, `__init__` vs `__call__`, short-circuiting, `contextvars`, `as_view()`, sessions |
 
+## Assignment logs
+
+> The chapters above are the *concepts*. These are the **assignments** — what
+> the task was, what broke, and the mistakes worth not repeating.
+
+| Phase | Log | Assignments covered |
+|---|---|---|
+| 1 | [Skeleton, Views, URLs](notes/assignments/phase-01-skeleton.md) | 1a health endpoint, 1b hand-rolled task detail |
+
 ## The Plan
 
 The roadmap, progress checkboxes, assignments and interview drills live in

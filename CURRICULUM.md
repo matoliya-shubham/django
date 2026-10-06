@@ -54,7 +54,7 @@ the memory, so a claim with nothing behind it is invisible next time.
 |---|---|---|---|---|
 | 0 | Setup: venv, pip | ✅ ch1 | n/a | ☐ |
 | P-I | **Python I** — core syntax & data model | ✅ ch3 | ☐ ☐ | ☐ |
-| 1 | Project skeleton, apps, views, urls | ✅ ch2,4 | ☑ ☐ | ☐ |
+| 1 | Project skeleton, apps, views, urls | ✅ ch2,4 | ☑ ☑ | ☐ |
 | 2 | Models + migrations + Postgres | ✅ ch5,6 | ☐ ☐ | ☐ |
 | 3 | The ORM | ✅ ch7 | ☐ ☐ | ☐ |
 | 4 | Relations | ✅ ch8 | ☐ ☐ | ☐ |
