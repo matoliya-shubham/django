@@ -3,10 +3,16 @@ from django.db import models
 # Create your models here.
 class Project(models.Model):
     name = models.CharField(max_length=100)
+    slug = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name
-    
+
+class Tag(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+            return self.name
 class Task(models.Model):
     STATUS_CHOICES = [
         ("todo", "To Do"),
@@ -18,8 +24,12 @@ class Task(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="todo")
     due_date = models.DateField(null=True, blank=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks', null=True, blank=True)
+    tags = models.ManyToManyField(Tag, related_name='tasks', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+         ordering = ['-created_at'] #newest first
+         
     def __str__(self):
         return f"{self.title} [{self.status}]"

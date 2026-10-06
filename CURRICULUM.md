@@ -54,8 +54,8 @@ the memory, so a claim with nothing behind it is invisible next time.
 |---|---|---|---|---|
 | 0 | Setup: venv, pip | ✅ ch1 | n/a | ☐ |
 | P-I | **Python I** — core syntax & data model | ✅ ch3 | ☐ ☐ | ☐ |
-| 1 | Project skeleton, apps, views, urls | ✅ ch2,4 | ☑ ☑ | ☐ |
-| 2 | Models + migrations + Postgres | ✅ ch5,6 | ☐ ☐ | ☐ |
+| 1 | Project skeleton, apps, views, urls | ✅ ch2,4 | ☑ ☑ | ~ 3/5 |
+| 2 | Models + migrations + Postgres | ✅ ch5,6 | ☑ ☑ | ☑ |
 | 3 | The ORM | ✅ ch7 | ☐ ☐ | ☐ |
 | 4 | Relations | ✅ ch8 | ☐ ☐ | ☐ |
 | 5 | Django Admin | ✅ ch9 | ☐ ☐ | ☐ |
@@ -72,10 +72,12 @@ the memory, so a claim with nothing behind it is invisible next time.
 | 13 | Settings, env, deployment | ☐ | ☐ ☐ | ☐ |
 | 14 | Capstone: Task Manager API end to end | ☐ | ☐ | ☐ |
 
-**Right now:** Phase 6 is fully closed out — notes, both assignments, drill.
-Phases 0-5 still owe their assignments and drills (notes only). Next new
-material: **Phase 7 (DRF)** or **Python Interlude II** — either is fair game;
-the Phase 1-5 backlog should get picked off in parallel, not skipped forever.
+**Right now:** clearing the Phase 0-5 backlog, in order. Phase 1 assignments
+are done (log: `notes/assignments/phase-01-skeleton.md`); Drill 1 scored **3/5**
+— Q1 (response journey), Q2 (project/app roles), Q5 (WSGI worker model) must be
+re-answered from memory before Phase 1 is `[x]`. Phase 2 assignments done
+and Drill 2 passed 5/5 (log: `notes/assignments/phase-02-models-migrations.md`).
+Next: **Phase 3 assignments** (the ORM).
 
 ---
 
@@ -168,9 +170,9 @@ manually.
 - [x] `makemigrations`, reading the generated file, `sqlmigrate`, `migrate`
 - [x] Postgres in Docker, volumes, `.env`, psycopg 3, DBeaver
 - [x] the `django_migrations` table
-- [ ] `Meta`: `ordering`, `db_table`, `unique_together` / `constraints`
-- [ ] data migrations (`RunPython`) vs schema migrations
-- [ ] how to safely reverse / squash a migration
+- [~] `Meta`: `ordering` done; `db_table`, `unique_together` / `constraints` still owed
+- [x] data migrations (`RunPython`) vs schema migrations
+- [~] reversing covered in Drill 2; **squashing** still owed
 
 ### Assignment 2a (easy)
 Add a `Tag` model (`name`, unique) and a `ManyToManyField` from `Task`. Run

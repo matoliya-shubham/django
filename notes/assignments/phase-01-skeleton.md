@@ -250,3 +250,142 @@ docker compose start db
 
 - [ ] `wsgi.py` vs `asgi.py` — what actually serves the request
 - [ ] **Drill 1** (from memory, no notes)
+
+---
+
+## Drill 1 — scored 3/5 (retest due)
+
+Answered cold, no notes. Recording the **gaps**, not the wins — Q3 and Q4 were
+fine and need nothing.
+
+### Q1. Trace `/api/tasks/5/` from `wsgi.py` to the view ❌
+
+> *I said:* "wsgi.py gets request, middleware, urls.py resolves, view runs."
+
+Right order, but it's a **one-way trip**. A lifecycle question is always about
+the round trip, and the follow-ups live in the second half.
+
+Missing:
+- `wsgi.py` doesn't "get" the request. It exposes one callable
+  (`application = get_wsgi_application()`) that gunicorn imports and calls. The
+  **server** owns the socket; `wsgi.py` is just the agreed handoff point.
+- Django finds urls via `settings.ROOT_URLCONF` → `config.urls`, not by magic.
+- **The way back out:** the `HttpResponse` travels back up through every
+  middleware **in reverse order**. Proved this myself in Phase 6 with
+  `TagMiddleware`: `TAG: before` → log line → `TAG: after`.
+- URL resolution happens *between* the two middleware passes — middleware wraps
+  resolution-**and**-view, not just the view.
+
+**Full-marks version:**
+
+> gunicorn receives the request → calls the WSGI callable in `wsgi.py` → Django
+> builds an `HttpRequest` → middleware runs top-down → `ROOT_URLCONF` resolves
+> the path, converters cast `5` to an int → view runs, returns `HttpResponse` →
+> middleware runs bottom-up → server writes the bytes.
+
+### Q2. Project vs app ❌ (mechanically right, conceptually thin)
+
+> *I said:* "app is a folder with apps.py registered in INSTALLED_APPS."
+
+That names the *registration*, not the *distinction*.
+
+- `apps.py` is **not** what makes it an app. An app is any **Python package
+  listed in `INSTALLED_APPS`**. `startapp` generates `apps.py` (an `AppConfig`)
+  as modern convention, but the `INSTALLED_APPS` entry is what counts. Models in
+  an unregistered folder are invisible — `makemigrations` won't see them.
+
+| | project | app |
+|---|---|---|
+| how many | exactly one | many |
+| holds | `settings.py`, `ROOT_URLCONF`, `wsgi.py`/`asgi.py` | models, views, migrations, templates |
+| job | configuration + deployment unit | one feature, self-contained |
+| portable? | no | **yes — should drop into another project** |
+
+That last row is what's being fished for. `django.contrib.admin` and
+`rest_framework` are just apps someone else wrote — same shape as `tasks/`.
+
+**Direction of dependency:** `config/` imports `tasks`. `tasks` must never
+import `config`. That's precisely why `tasks/urls.py` says `path("health/")` and
+not `path("api/health/")` — the app doesn't know where it's mounted. My 1a bug
+was this boundary being crossed.
+
+**Portability test:** could I copy `tasks/` into another project unchanged? If
+yes, it's a proper app.
+
+### Q5. WSGI vs ASGI ❌ (the classic misconception)
+
+> *I said:* "wsgi is sync one request at a time, asgi is async."
+
+"One request at a time" is per **worker**, not per server. WSGI deployments
+serve plenty of concurrency — gunicorn runs N worker processes (± threads), each
+handling one request start to finish. **Concurrency comes from the process
+model, not the protocol.** Say it flatly and you get asked how any Django site
+has ever worked.
+
+The real distinction is not speed, it's **what the protocol can express**:
+
+| | WSGI | ASGI |
+|---|---|---|
+| shape | one request → one response | request/response **plus** long-lived connections |
+| worker blocked during I/O | yes | no — it interleaves |
+| WebSockets, SSE, HTTP/2 push | **impossible** | yes |
+| servers | gunicorn, uWSGI | uvicorn, daphne, hypercorn |
+
+WSGI has no way to *say* "this connection stays open, messages flow both ways."
+Not slow at it — structurally incapable. Hence Django Channels, hence `asgi.py`.
+
+**One-liners to have ready:**
+> **WSGI** — the synchronous Python↔webserver contract: one request in, one
+> response out, worker blocked throughout.
+> **ASGI** — the async successor: a worker interleaves many in-flight requests
+> while awaiting I/O, and can carry long-lived protocols WSGI can't represent.
+
+**Trap for later:** ASGI only helps if the code is *actually* async. One
+blocking DB call inside an `async def` view stalls the whole event loop — worse
+than WSGI. See Python Interlude IV.
+
+### Q3 ✅ `include()` — had it
+
+Keeps each app's URLs in the app. Worth adding: the mount point lives in **one
+line**, so `path("api/v2/", include("tasks.urls"))` moves every URL at once
+(cheap API versioning); and `app_name` namespaces names so two apps can both
+have `detail` → `reverse("tasks:detail")`. Clincher: third-party apps ship their
+own `urls.py` — `include()` is the only way to mount DRF or the admin.
+
+### Q4 ✅ trailing slash / `APPEND_SLASH` — had it
+
+Worth adding: it lives in **`CommonMiddleware`** (default `True`), redirects
+only when the slash-less URL *doesn't* match and the slashed one *does*, and
+it's a **301**.
+
+**The gotcha:** browsers turn a redirected POST into a GET and **drop the body**.
+So POSTing to `/api/tasks/5` silently becomes a GET of `/api/tasks/5/` — 200 OK,
+payload gone, nothing errored. Django refuses to be quiet about it under
+`DEBUG=True`:
+
+> "You called this URL via POST, but the URL doesn't end in a slash and you have
+> `APPEND_SLASH` set. Django can't redirect to the slash URL while maintaining
+> POST data."
+
+`APPEND_SLASH = False` → plain 404. Stricter, arguably more honest for an API.
+
+---
+
+## Side questions that came up
+
+**Running two API versions at once.** Mount the same app twice:
+
+```python
+path("api/v1/", include("tasks.urls_v1", namespace="v1")),
+path("api/v2/", include("tasks.urls_v2", namespace="v2")),
+```
+
+Separate `urls_*`/`views_*` modules, **shared `models.py`** — one schema, one
+migration history. The rule: **version the representation, not the data.** Only
+the view/serializer layer forks; v2 usually imports v1's logic and changes the
+output shape.
+
+Two warnings: have a **deprecation plan before creating v2** (teams that don't
+maintain five versions forever), and once on DRF, `URLPathVersioning` gives
+`request.version` inside a *single* view — better for small differences, while
+separate modules suit a real redesign.

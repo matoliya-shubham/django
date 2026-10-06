@@ -27,6 +27,7 @@
 | Phase | Log | Assignments covered |
 |---|---|---|
 | 1 | [Skeleton, Views, URLs](notes/assignments/phase-01-skeleton.md) | 1a health endpoint, 1b hand-rolled task detail |
+| 2 | [Models, Migrations, Postgres](notes/assignments/phase-02-models-migrations.md) | 2a M2M + join table + `Meta.ordering`, 2b the three-migration non-null dance |
 
 ## The Plan
 
