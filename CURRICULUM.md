@@ -54,7 +54,7 @@ the memory, so a claim with nothing behind it is invisible next time.
 |---|---|---|---|---|
 | 0 | Setup: venv, pip | ✅ ch1 | n/a | ☐ |
 | P-I | **Python I** — core syntax & data model | ✅ ch3 | ☐ ☐ | ☐ |
-| 1 | Project skeleton, apps, views, urls | ✅ ch2,4 | ☐ ☐ | ☐ |
+| 1 | Project skeleton, apps, views, urls | ✅ ch2,4 | ☑ ☐ | ☐ |
 | 2 | Models + migrations + Postgres | ✅ ch5,6 | ☐ ☐ | ☐ |
 | 3 | The ORM | ✅ ch7 | ☐ ☐ | ☐ |
 | 4 | Relations | ✅ ch8 | ☐ ☐ | ☐ |
@@ -136,7 +136,7 @@ can be a dict key and why*. Expect the follow-up: "why must a key be hashable?"
 - [x] `urlpatterns`, `path()`, `include()`
 - [x] first endpoint returning `JsonResponse`
 - [ ] `wsgi.py` vs `asgi.py` — what actually serves the request
-- [ ] named URLs and `reverse()`
+- [x] named URLs and `reverse()`
 
 ### Assignment 1a (easy) — in `tasks/`
 Add `GET /api/health/` returning `{"status": "ok", "db": "up"}`, where `db` is
