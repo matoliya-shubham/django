@@ -56,7 +56,7 @@ the memory, so a claim with nothing behind it is invisible next time.
 | P-I | **Python I** — core syntax & data model | ✅ ch3 | ☐ ☐ | ☐ |
 | 1 | Project skeleton, apps, views, urls | ✅ ch2,4 | ☑ ☑ | ~ 3/5 |
 | 2 | Models + migrations + Postgres | ✅ ch5,6 | ☑ ☑ | ☑ |
-| 3 | The ORM | ✅ ch7 | ☐ ☐ | ☐ |
+| 3 | The ORM | ✅ ch7 | ☑ ☑ | ~ 3/5 |
 | 4 | Relations | ✅ ch8 | ☐ ☐ | ☐ |
 | 5 | Django Admin | ✅ ch9 | ☐ ☐ | ☐ |
 | P-II | **Python II** — functions, decorators, generators | ☐ | ☐ ☐ | ☐ |
@@ -76,8 +76,10 @@ the memory, so a claim with nothing behind it is invisible next time.
 are done (log: `notes/assignments/phase-01-skeleton.md`); Drill 1 scored **3/5**
 — Q1 (response journey), Q2 (project/app roles), Q5 (WSGI worker model) must be
 re-answered from memory before Phase 1 is `[x]`. Phase 2 assignments done
-and Drill 2 passed 5/5 (log: `notes/assignments/phase-02-models-migrations.md`).
-Next: **Phase 3 assignments** (the ORM).
+and Drill 2 passed 5/5. Phase 3 assignments done — `report` management command,
+N+1 proved and fixed, O(1) queries verified against 1002 seeded rows. Drill 3
+scored **3/5** — retest Q2 (`filter().filter()` across a multi-valued relation),
+Q4 (`F()`), Q5 (`get()` exceptions). Next: **Phase 4 assignments** (relations).
 
 ---
 
@@ -170,7 +172,8 @@ manually.
 - [x] `makemigrations`, reading the generated file, `sqlmigrate`, `migrate`
 - [x] Postgres in Docker, volumes, `.env`, psycopg 3, DBeaver
 - [x] the `django_migrations` table
-- [~] `Meta`: `ordering` done; `db_table`, `unique_together` / `constraints` still owed
+- [~] `Meta`: `ordering` + `constraints` (CheckConstraint) done; `db_table`,
+  `unique_together` still owed
 - [x] data migrations (`RunPython`) vs schema migrations
 - [~] reversing covered in Drill 2; **squashing** still owed
 
@@ -203,10 +206,10 @@ three-step dance is the expected answer, and almost nobody has done it.
 - [x] `manage.py shell`, manager, `objects`
 - [x] create / filter / get / update / delete
 - [x] `__` lookups, lazy QuerySets, `Q` and `F`
-- [ ] `annotate` vs `aggregate`
+- [x] `annotate` vs `aggregate`
 - [ ] `values()` / `values_list()` / `only()` / `defer()`
-- [ ] `bulk_create`, `bulk_update`, `iterator()`
-- [ ] when the queryset actually hits the DB (evaluation triggers)
+- [~] `bulk_create` done; `bulk_update`, `iterator()` still owed
+- [x] when the queryset actually hits the DB (evaluation triggers)
 
 ### Assignment 3a (easy) — `practice/a3-orm-reports/`
 A management command `python manage.py report` printing: task count per status,

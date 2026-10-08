@@ -1,6 +1,11 @@
 from django.db import models
 
 # Create your models here.
+STATUS_CHOICES = [
+        ("todo", "To Do"),
+        ("in_progress", "In Progress"),
+        ("done", "Done"),
+    ]
 class Project(models.Model):
     name = models.CharField(max_length=100)
     slug = models.CharField(max_length=100, unique=True)
@@ -14,11 +19,6 @@ class Tag(models.Model):
     def __str__(self):
             return self.name
 class Task(models.Model):
-    STATUS_CHOICES = [
-        ("todo", "To Do"),
-        ("in_progress", "In Progress"),
-        ("done", "Done"),
-    ]
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="todo")
@@ -29,7 +29,13 @@ class Task(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-         ordering = ['-created_at'] #newest first
+        ordering = ['-created_at'] #newest first
+        constraints = [
+                models.CheckConstraint(
+                    condition=models.Q(status__in=[c[0] for c in STATUS_CHOICES]),
+                    name="task_status_valid",
+                )
+        ]
          
     def __str__(self):
         return f"{self.title} [{self.status}]"

@@ -28,6 +28,7 @@
 |---|---|---|
 | 1 | [Skeleton, Views, URLs](notes/assignments/phase-01-skeleton.md) | 1a health endpoint, 1b hand-rolled task detail |
 | 2 | [Models, Migrations, Postgres](notes/assignments/phase-02-models-migrations.md) | 2a M2M + join table + `Meta.ordering`, 2b the three-migration non-null dance |
+| 3 | [The ORM](notes/assignments/phase-03-orm.md) | 3a `report` management command + `annotate`, 3b proving and fixing an N+1 |
 
 ## The Plan
 

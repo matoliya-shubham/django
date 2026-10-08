@@ -1,47 +1,58 @@
 # Phase 1 Assignments — Skeleton, Views, URLs
 
-> Log of what the task was, what I got wrong, and why. Mistakes are the point
-> of this file — the concepts I already got right live in ch2/ch4.
+> What I was asked to build, what I got wrong, and why.
+> The mistakes are the point of this file.
 
 ---
 
-## Assignment 1a — health endpoint that actually checks the DB
+## Assignment 1a — a health check that really checks
 
-**Task:** `GET /api/health/` → `{"status": "ok", "db": "up"}`, where `db` is
-proved by hitting the database. Named URL. 503 when the DB is down.
+**The task:** build `GET /api/health/`. It returns `{"status": "ok", "db": "up"}`.
+The `db` part must be proved by actually asking the database something. Not
+hardcoded. Return 503 if the database is down. Give the URL a name.
 
-**Shipped:** `tasks/views.py::health`, `tasks/urls.py` name `health`.
+**Where the code is:** `tasks/views.py` → `health`. URL named `health`.
 
 ### What I got stuck on
 
-**1. "I can't access `connection`"** — the editor greyed it out. The editor was
-wrong. `connection` is defined at `django/db/__init__.py:43`. Checked it with
-`grep -n "connection" venv/lib/python*/site-packages/django/db/__init__.py`.
+**My editor said `connection` doesn't exist.** It was wrong. The name is really
+there, at `django/db/__init__.py` line 43. I checked with:
 
-> **Lesson:** when the editor and the source disagree, the source wins. Pylance
-> resolving `django.http` but not a *name* inside `django.db` means the module
-> is fine and only the inference failed.
+```bash
+grep -n "connection" venv/lib/python*/site-packages/django/db/__init__.py
+```
 
-**2. `connection` vs `connections`** — Django's own comment on line 42 says
-*"For backwards compatibility. Prefer `connections['default']` instead."*
-`connections` (plural) is the real handler, keyed by DB alias. `connection` is
-just `connections["default"]` behind a proxy. Matters the day there's a read
-replica: `connections["replica"]`. That's also the interview answer to *"how do
-you query a secondary database?"*
+> **Lesson:** when the editor and the source code disagree, the source wins.
 
-**3. What SQL proves liveness?** `SELECT 1` — valid in every dialect, touches no
-table of mine, forces a real round-trip.
+**There are two things, `connection` and `connections`.** Django's own comment
+says: *"For backwards compatibility. Prefer `connections['default']` instead."*
 
-`cursor.fetchone()` is not optional: without reading the result you've only
-proved you *sent* bytes, not that the server answered.
+- `connections` (plural) is the real one. It is like a dictionary, one entry per
+  database.
+- `connection` (singular) is just a shortcut for `connections["default"]`.
 
-**4. Which exception?** `django.db.DatabaseError` — the base class that
-`OperationalError`, `InterfaceError` etc. inherit from. Narrow enough to be
-honest, wide enough to catch a dead socket. `except Exception` is the lazy
-answer an interviewer pushes on.
+This matters when a project has more than one database. Then you write
+`connections["replica"]`. That is also the answer to the interview question
+*"how do you query a second database?"*
 
-**5. Which status code?** 503, not 200. A health check returning 200 while the
-DB is down is theatre — the load balancer keeps routing traffic to a broken pod.
+**What SQL proves the database is alive?** `SELECT 1`.
+
+It works on every database. It touches none of my tables. And it forces a real
+trip to the server and back.
+
+I also need `cursor.fetchone()`. Without it I have only proved that I *sent*
+something. I have not proved the database *answered*.
+
+**Which error do I catch?** `django.db.DatabaseError`.
+
+It is the parent class of `OperationalError`, `InterfaceError` and the rest. So
+it catches a dead database but does not catch every bug in my code. Writing
+`except Exception` is the lazy version, and an interviewer will push on it.
+
+**Which status code?** 503, not 200.
+
+A health check that says 200 while the database is dead is useless. The load
+balancer will keep sending real users to a broken server.
 
 ```python
 with connection.cursor() as cursor:
@@ -49,343 +60,437 @@ with connection.cursor() as cursor:
     cursor.fetchone()
 ```
 
-(`with` = context manager = the `finally: cursor.close()` I'd otherwise write
-by hand. Python Interlude II material, met early.)
+The `with` here is a *context manager*. It closes the cursor for me, even if an
+error is thrown. It is the same as writing `finally: cursor.close()` by hand.
 
 ### Mistakes I actually made
 
-| Mistake | What happened | Why |
-|---|---|---|
-| `path("api/health/", ...)` in `tasks/urls.py` | URL became `/api/api/health/` | `config/urls.py` already mounts the app under `api/` via `include()`. The app's own `urls.py` must be written **relative** to that prefix. |
-| `views.check_health` in urls, `health` in views | `AttributeError` **at server start**, not on request | Django imports the whole URLconf at boot and resolves every view reference eagerly. A urls.py typo is a boot failure. Deliberate: fail loudly at deploy, not at 3am. |
+**1. I wrote `path("api/health/", ...)` inside `tasks/urls.py`.**
 
-### `reverse()` — the bit I didn't get at first
+The URL became `/api/api/health/`.
 
-`urls.py` is a two-column phone book, and Django reads it **both ways**:
+Why: `config/urls.py` already mounts the app under `api/`. So inside the app I
+must write paths *without* that prefix. The app does not know where it is
+mounted.
 
-| direction | who uses it | example |
-|---|---|---|
-| URL → view | the browser, routing | `/api/health/` → `health()` |
-| name → URL | my code, `reverse()` | `reverse("health")` → `/api/health/` |
+**2. My URL pointed at `views.check_health` but the function was called `health`.**
 
-"Reverse" = the reverse lookup. The payoff: the string `/api/health/` exists in
-**exactly one place**, `urls.py`. Change the path and every `reverse("health")`,
-`{% url 'health' %}` and `redirect("health")` follows automatically. Hardcoded
-URL strings scattered over 40 files are the thing this deletes.
+The error came up **when I started the server**, not when I visited the URL:
 
-**JS comparison:** same idea as naming an Express route and generating links
-from the name — except Django builds it in, and templates use it too.
+```
+AttributeError: module 'tasks.views' has no attribute 'check_health'
+```
+
+Why: Django reads the whole URL file at startup and checks every view exists.
+So a typo in `urls.py` stops the server from booting.
+
+That is on purpose. Better to break loudly at deploy time than at 3am when a
+user finally hits that one URL.
+
+### `reverse()` — the bit I did not get at first
+
+Think of `urls.py` as a phone book with two columns:
+
+| name | URL |
+|---|---|
+| `"health"` | `/api/health/` |
+| `"ping"` | `/api/ping/` |
+
+Django reads it in **both** directions.
+
+**Left to right:** a browser asks for `/api/health/`, Django finds the view.
+That is normal routing.
+
+**Right to left:** my code asks "what is the URL named `health`?" and Django
+answers `/api/health/`. That is `reverse()`. It is literally the reverse lookup.
+
+```python
+reverse("health")   # → "/api/health/"
+```
+
+**Why bother?** Because the text `/api/health/` now exists in exactly **one**
+place: `urls.py`.
+
+Imagine 40 files with `"/api/health/"` typed inside them. Then the URL changes.
+You have to find all 40 and pray you did not miss one. With `reverse()` you
+change one line and everything follows.
+
+**Compared to JS:** the same idea as naming a route in Express and building
+links from the name. Django just builds it in, and templates use it too with
+`{% url 'health' %}`.
 
 ---
 
-## Assignment 1b — task detail by hand, no DRF
+## Assignment 1b — fetch one task by id, by hand
 
-**Task:** `GET /api/tasks/<int:task_id>/`. 200 + task JSON, **JSON** 404 (not
-Django's HTML page) when missing, 405 on any other method.
+**The task:** build `GET /api/tasks/<int:task_id>/` without DRF.
 
-**Shipped:** `tasks/views.py::get_task`, URL name `task_detail`.
+| request | response |
+|---|---|
+| `GET` on an id that exists | 200 and the task as JSON |
+| `GET` on an id that does not exist | 404, **with a JSON body** |
+| `POST` / `PUT` / `DELETE` | 405 |
 
-### `Http404` vs `DoesNotExist` — two different layers
+**Where the code is:** `tasks/views.py` → `get_task`. URL named `task_detail`.
+
+### `Http404` and `DoesNotExist` are two different things
+
+They live at two different levels.
 
 ```
 Task.objects.get(pk=1)
-      ↓ nothing found
-Task.DoesNotExist          ← DATABASE language. Knows nothing about HTTP.
-      ↓ I translate
-JsonResponse(..., status=404)   ← HTTP language
+      ↓ found nothing
+Task.DoesNotExist          ← database language. Knows nothing about the web.
+      ↓ I translate it
+JsonResponse(..., status=404)   ← web language
 ```
 
-- `Task.DoesNotExist` — auto-generated on every model. Raised by `.get()`.
-  Would raise identically in a script with no web server running.
-- `Http404` — an HTTP signal. Django's middleware catches it and renders an
-  **HTML** error page.
-- `get_object_or_404` — just that translation pre-packaged
-  (`try/except DoesNotExist: raise Http404`).
+- **`Task.DoesNotExist`** is made automatically for every model. `.get()` raises
+  it. It would raise the same way in a plain script with no web server at all.
+- **`Http404`** is a web thing. Django catches it and shows an **HTML** error
+  page.
+- **`get_object_or_404`** is just those two steps packaged together.
 
-**Why I must not use `get_object_or_404` here:** it ends in an HTML page, and an
-API client asked for JSON. So I do the translation by hand.
+**So why could I not use `get_object_or_404`?** Because it ends in an HTML page.
+My API client asked for JSON. So I do the translation myself.
 
 ### Mistakes I actually made
 
-**1. Bare dict keys — the biggest JS→Python trap**
+**1. I wrote dict keys without quotes. This is the biggest JS → Python trap.**
 
 ```python
-{id: task.id, title: task.title}     # WRONG
-{"id": task.id, "title": task.title} # right
+{id: task.id, title: task.title}      # WRONG
+{"id": task.id, "title": task.title}  # right
 ```
 
-JavaScript quietly quotes bare keys for you. **Python does not** — a bare name
-is a variable lookup. `title` → `NameError`, loud and obvious.
+In JavaScript, `{id: 1}` makes the key the *text* `"id"`. JS quietly adds the
+quotes for you.
 
-But `id` **didn't** error, because `id` is a real name in Python: the builtin
-function. So the dict got keyed by a *function object*, stayed legal, and only
-blew up one layer later inside `json.dumps`:
+**Python does not.** In Python a bare word means "look up the variable with this
+name". There is no variable called `title`, so I got a `NameError`. Loud and
+clear.
 
-> `TypeError: keys must be str, int, float, bool or None, not builtin_function_or_method`
+But `id` did **not** error. Because `id` *is* a real name in Python — it is a
+built-in function. So Python happily used that function as a dictionary key.
+Everything looked fine until `json.dumps` tried to turn it into JSON:
 
-> **Lesson:** `title` failed loudly, `id` failed quietly and the error surfaced
-> two layers from where I made it. Same trap: `list`, `type`, `str`, `sum`,
-> `filter`, `max`, `input`. Shadowing a builtin is legal and breaks elsewhere.
+```
+TypeError: keys must be str, int, float, bool or None,
+           not builtin_function_or_method
+```
 
-**2. Passing the model instance straight to `JsonResponse`**
+> **Lesson:** `title` failed straight away. `id` failed quietly, and the error
+> appeared two steps later in a completely different place.
+>
+> Other built-in names that do the same: `list`, `type`, `str`, `sum`, `filter`,
+> `max`, `input`. Using them as your own names is allowed, and it breaks
+> something else later.
+
+**2. I passed the model object straight to `JsonResponse`.**
 
 ```python
-JsonResponse({"task": task})   # TypeError: Object of type Task is not JSON serializable
+JsonResponse({"task": task})
+# TypeError: Object of type Task is not JSON serializable
 ```
 
-`json` knows dict / list / str / number / bool / None, and nothing else. A
-`Task` is a Python object with a DB row behind it. I have to choose the fields
-and build a plain dict myself.
+JSON only understands dictionaries, lists, text, numbers, true/false and null.
+That is the whole list. A `Task` is a Python object with a database row behind
+it. JSON has no idea how to flatten it.
 
-> That hand-written dict, once per model per endpoint, forever — **is exactly
-> what a DRF serializer replaces.** This is the gap Phase 7 fills.
+So I pick which fields to send and build a plain dictionary myself.
 
-**3. No 405 branch → 500**
+> That hand-written dictionary — once per model, for every endpoint, forever —
+> **is exactly what a DRF serializer replaces.** This is the gap Phase 7 fills.
 
-`if request.method == "GET":` with no `else`. On POST, Python ran off the end
-and returned `None`:
+**3. I forgot the 405 branch, and got a 500 instead.**
 
-> `The view didn't return an HttpResponse object. It returned None instead.`
+I wrote `if request.method == "GET":` with no `else`. On a POST, Python ran off
+the end of the function and returned `None`:
 
-From the client's side that turns *"you used the wrong verb"* into *"the server
-is broken"* — and under `DEBUG=True` it leaks a full stack trace.
+```
+The view didn't return an HttpResponse object. It returned None instead.
+```
 
-**4. POST returned a 403 HTML page, not my 405**
+So "you used the wrong method" turned into "the server is broken". And with
+`DEBUG=True` it also showed a full stack trace to the client.
 
-CSRF. `CsrfViewMiddleware` rejects unsafe methods without a valid token in
-`process_view`, which runs **before the view is ever called**. My 405 never got
-a turn. Phase 6 paying off: middleware ordering decides who answers first.
+**4. A POST gave me a 403 HTML page, not my 405.**
 
-**5. Put `csrf_exempt` in the `MIDDLEWARE` list**
+That is CSRF protection.
 
-Wrong mechanism. The import path says it: `django.views.**decorators**.csrf`.
+`CsrfViewMiddleware` blocks POST, PUT and DELETE that arrive without a valid
+CSRF token. It does this **before my view ever runs**. So my 405 never got a
+chance.
 
-| | scope |
+This is Phase 6 paying off: middleware order decides who answers first.
+
+**5. I put `csrf_exempt` in the `MIDDLEWARE` list.**
+
+Wrong place. The import path even says so: `django.views.**decorators**.csrf`.
+
+| | what it wraps |
 |---|---|
-| middleware | wraps **every** request in the project |
-| decorator | wraps **one** view |
+| middleware | **every** request in the whole project |
+| decorator | **one** view |
 
-Exempting the whole site was never the goal.
+Turning CSRF off for the entire site was never what I wanted.
 
 ```python
 @csrf_exempt
 def get_task(request, task_id):
 ```
 
-**How it actually works** (neat, and it recurs): `csrf_exempt` disables nothing.
-It sets an attribute — `view.csrf_exempt = True` — and `CsrfViewMiddleware`
-checks for that attribute before deciding to reject. *The decorator leaves a
-flag; the middleware reads it.*
+**How it actually works, which is neat:** `csrf_exempt` turns nothing off by
+itself. It just sets a flag on the function — `view.csrf_exempt = True`. Then
+`CsrfViewMiddleware` looks for that flag before deciding to block.
 
-**When is exempting OK?** CSRF protects **cookie-authenticated browser**
-requests. An API authenticating by token header isn't vulnerable the same way —
-which is why DRF turns CSRF off for token auth and keeps it on for session auth.
+*The decorator leaves a note; the middleware reads it.*
+
+**When is turning CSRF off safe?** CSRF protects requests authenticated by
+**cookies in a browser**. An API that authenticates with a token in a header is
+not open to the same attack. That is why DRF switches CSRF off for token auth
+and keeps it on for session auth.
 
 ### Things I asked about
 
-**Dates.** I wrote no date handling, yet a `datetime` serialized fine.
-`JsonResponse` defaults to `DjangoJSONEncoder` (not the stdlib encoder), which
-knows `datetime`, `date`, `Decimal`, `UUID` → emits **ISO 8601**.
+**Dates.** I wrote no date code at all, yet a `datetime` turned into JSON fine.
+
+`JsonResponse` uses `DjangoJSONEncoder` instead of the plain Python one. That
+encoder knows `datetime`, `date`, `Decimal` and `UUID`. It writes them as
+**ISO 8601**:
 
 ```
 "created_at": "2026-10-06T11:23:41.902Z"
 ```
 
-- Inside `JsonResponse` — nothing to do.
-- Plain `json.dumps` (Celery task, cache write) — it **will** raise. Pass
-  `cls=DjangoJSONEncoder`, or `.isoformat()` the field yourself.
-- Want `"06 Oct 2026"`? Don't, in an API. It can't be sorted, can't be parsed
-  reliably, and bakes one locale into the backend. Send ISO; let the frontend
-  format for the human.
-- `USE_TZ = True` → aware **UTC** datetimes (note the `Z`). `False` → naive
-  local times and timezone bugs that only appear for users in other countries.
+That is the right format to send. It is unambiguous, it sorts correctly as plain
+text, and every language can read it (`new Date(str)` in JS,
+`datetime.fromisoformat` in Python).
 
-**Response shape — envelope or flat?** A real design question, and asked.
+- Inside `JsonResponse` — nothing to do, it is handled.
+- With plain `json.dumps` (in a Celery task, or writing to a cache) — it **will**
+  crash. Either pass `cls=DjangoJSONEncoder`, or call `.isoformat()` yourself.
+- Want `"06 Oct 2026"` instead? Do not do that in an API. It cannot be sorted,
+  it is hard to parse, and it locks one country's format into the backend. Send
+  ISO and let the frontend format it for the human.
+- `USE_TZ = True` means Django gives you UTC times with timezone info — that is
+  what the `Z` means. With `False` you get plain local times, and timezone bugs
+  that only show up for users in other countries.
+
+**What shape should the response be?** This is a real design decision, and it
+gets asked.
 
 ```json
-{"id": 5, "title": "Buy milk"}                    // flat — the resource IS the body
-{"status": "success", "task": {"id": 5, ...}}     // enveloped
+{"id": 5, "title": "Buy milk"}                    // flat — the body IS the task
+{"status": "success", "task": {"id": 5, ...}}     // wrapped in an envelope
 ```
 
-The HTTP status code already carries success/failure; repeating it in the body
-gives two sources of truth that can disagree. Also `"status"` ended up meaning
-two things at once — the envelope's success flag, and the task's `todo`/`done`.
-That collision is the smell. Convention (and DRF's default): **flat for 200, a
-small envelope for errors**, since an error has no natural resource to be.
+The HTTP status code already says whether it worked. Repeating that in the body
+gives you two sources of truth that can disagree.
 
-**405 needs an `Allow` header** — required by the HTTP spec, not politeness. The
-resource exists; only the verb is wrong, so the client is told what *is* allowed.
+I also ended up with `"status"` meaning two different things at once: the
+envelope's success flag, and the task's own `todo`/`done`. That clash is the
+warning sign.
+
+The common choice, and DRF's default: **flat for success, a small envelope for
+errors** — because an error has no natural object to be.
+
+**A 405 must include an `Allow` header.** This is required by the HTTP spec, not
+just politeness. The resource exists; only the verb is wrong. So the client is
+told which verbs *do* work.
 
 ```python
 response = JsonResponse({...}, status=405)
 response["Allow"] = "GET"
 ```
 
-(Same dict-style header access as the Phase 6 middleware.)
+(Same `response["Header"] = value` style as the Phase 6 middleware.)
 
-### Order of checks in the view
+### What order to check things in
 
-Method **first**, then the lookup. A POST to a non-existent task should answer
-405 ("we don't do POST here"), not 404 — the verb is wrong regardless of whether
-the row exists.
+Check the **method first**, then look up the task.
+
+A POST to a task that does not exist should answer 405, not 404. The verb is
+wrong either way, so there is no point looking the row up.
 
 ---
 
-## Verifying, every time
+## How to test it
 
 ```bash
-curl -i http://127.0.0.1:8000/api/health/          # 200 / 503
+curl -i http://127.0.0.1:8000/api/health/          # 200, or 503
 curl -i http://127.0.0.1:8000/api/tasks/5/         # 200
-curl -i http://127.0.0.1:8000/api/tasks/999/       # 404, JSON body
-curl -i -X POST http://127.0.0.1:8000/api/tasks/5/ # 405 + Allow: GET
-docker compose stop db                             # then re-curl health → 503
+curl -i http://127.0.0.1:8000/api/tasks/999/       # 404 with a JSON body
+curl -i -X POST http://127.0.0.1:8000/api/tasks/5/ # 405 and Allow: GET
+
+docker compose stop db     # then call health again → 503
 docker compose start db
 ```
 
-`-i` matters: the status line and headers are half the assignment.
+Use `-i`. The status line and the headers are half of what I am checking.
 
 ---
 
-## Still open for Phase 1
+## Drill 1 — scored 3/5, needs a retest
 
-- [ ] `wsgi.py` vs `asgi.py` — what actually serves the request
-- [ ] **Drill 1** (from memory, no notes)
-
----
-
-## Drill 1 — scored 3/5 (retest due)
-
-Answered cold, no notes. Recording the **gaps**, not the wins — Q3 and Q4 were
-fine and need nothing.
+Answered with no notes. Recording the **gaps** only. Q3 and Q4 were fine.
 
 ### Q1. Trace `/api/tasks/5/` from `wsgi.py` to the view ❌
 
 > *I said:* "wsgi.py gets request, middleware, urls.py resolves, view runs."
 
-Right order, but it's a **one-way trip**. A lifecycle question is always about
-the round trip, and the follow-ups live in the second half.
+The order is right, but it is only half the journey. The response has to get
+back out again, and that is where the follow-up questions live.
 
-Missing:
-- `wsgi.py` doesn't "get" the request. It exposes one callable
-  (`application = get_wsgi_application()`) that gunicorn imports and calls. The
-  **server** owns the socket; `wsgi.py` is just the agreed handoff point.
-- Django finds urls via `settings.ROOT_URLCONF` → `config.urls`, not by magic.
-- **The way back out:** the `HttpResponse` travels back up through every
-  middleware **in reverse order**. Proved this myself in Phase 6 with
-  `TagMiddleware`: `TAG: before` → log line → `TAG: after`.
-- URL resolution happens *between* the two middleware passes — middleware wraps
-  resolution-**and**-view, not just the view.
+What I missed:
 
-**Full-marks version:**
+- `wsgi.py` does not "get" the request. It just exposes one function
+  (`application = get_wsgi_application()`). Gunicorn imports that function and
+  calls it. The **server** owns the network connection. `wsgi.py` is only the
+  agreed meeting point.
+- Django finds the URLs through `settings.ROOT_URLCONF`, which points at
+  `config.urls`.
+- **The way back:** the response travels back up through every middleware, in
+  **reverse order**. I proved this myself in Phase 6 with `TagMiddleware`:
+  `TAG: before` → log line → `TAG: after`.
+- URL matching happens *between* the two middleware passes. Middleware wraps the
+  URL matching as well as the view.
 
-> gunicorn receives the request → calls the WSGI callable in `wsgi.py` → Django
-> builds an `HttpRequest` → middleware runs top-down → `ROOT_URLCONF` resolves
-> the path, converters cast `5` to an int → view runs, returns `HttpResponse` →
-> middleware runs bottom-up → server writes the bytes.
+**The full answer:**
 
-### Q2. Project vs app ❌ (mechanically right, conceptually thin)
+> Gunicorn receives the request. It calls the function in `wsgi.py`. Django
+> builds an `HttpRequest`. Middleware runs top to bottom. `ROOT_URLCONF` matches
+> the path and turns `5` into an int. The view runs and returns an
+> `HttpResponse`. Middleware runs bottom to top. The server sends the bytes.
+
+### Q2. Project vs app ❌ (right mechanism, missing the idea)
 
 > *I said:* "app is a folder with apps.py registered in INSTALLED_APPS."
 
-That names the *registration*, not the *distinction*.
+That describes how an app is *registered*. The question was about the
+*difference*.
 
-- `apps.py` is **not** what makes it an app. An app is any **Python package
-  listed in `INSTALLED_APPS`**. `startapp` generates `apps.py` (an `AppConfig`)
-  as modern convention, but the `INSTALLED_APPS` entry is what counts. Models in
-  an unregistered folder are invisible — `makemigrations` won't see them.
+`apps.py` is not what makes something an app. An app is any **Python package
+listed in `INSTALLED_APPS`**. `startapp` creates `apps.py` because that is the
+modern style, but the entry in `INSTALLED_APPS` is what counts. Models in a
+folder that is not listed are invisible — `makemigrations` will not see them.
 
 | | project | app |
 |---|---|---|
-| how many | exactly one | many |
-| holds | `settings.py`, `ROOT_URLCONF`, `wsgi.py`/`asgi.py` | models, views, migrations, templates |
-| job | configuration + deployment unit | one feature, self-contained |
-| portable? | no | **yes — should drop into another project** |
+| how many | exactly one | as many as you like |
+| contains | `settings.py`, `ROOT_URLCONF`, `wsgi.py`, `asgi.py` | models, views, migrations, templates |
+| job | configuration and deployment | one feature, self-contained |
+| can it move to another project? | no | **yes — that is the point** |
 
-That last row is what's being fished for. `django.contrib.admin` and
-`rest_framework` are just apps someone else wrote — same shape as `tasks/`.
+That last row is what the interviewer is after. `django.contrib.admin` and
+`rest_framework` are just apps that somebody else wrote. Same shape as `tasks/`.
 
-**Direction of dependency:** `config/` imports `tasks`. `tasks` must never
-import `config`. That's precisely why `tasks/urls.py` says `path("health/")` and
-not `path("api/health/")` — the app doesn't know where it's mounted. My 1a bug
-was this boundary being crossed.
+**Which way the dependency points:** `config/` imports `tasks`. `tasks` must
+never import `config`. That is exactly why `tasks/urls.py` says `path("health/")`
+and not `path("api/health/")` — the app does not know where it is mounted. My 1a
+bug was this rule being broken.
 
-**Portability test:** could I copy `tasks/` into another project unchanged? If
-yes, it's a proper app.
+**The test:** could I copy `tasks/` into another project unchanged? If yes, it is
+a proper app.
 
-### Q5. WSGI vs ASGI ❌ (the classic misconception)
+### Q5. WSGI vs ASGI ❌ (the classic wrong answer)
 
 > *I said:* "wsgi is sync one request at a time, asgi is async."
 
-"One request at a time" is per **worker**, not per server. WSGI deployments
-serve plenty of concurrency — gunicorn runs N worker processes (± threads), each
-handling one request start to finish. **Concurrency comes from the process
-model, not the protocol.** Say it flatly and you get asked how any Django site
-has ever worked.
+"One request at a time" is true per **worker**, not per server.
 
-The real distinction is not speed, it's **what the protocol can express**:
+A WSGI site handles plenty of requests at once. Gunicorn runs several worker
+processes, and each one handles a single request from start to finish.
+**The concurrency comes from running many workers, not from the protocol.**
+
+Say "one request at a time" flatly and you will be asked how any Django site has
+ever worked.
+
+The real difference is not speed. It is **what the protocol can express**:
 
 | | WSGI | ASGI |
 |---|---|---|
-| shape | one request → one response | request/response **plus** long-lived connections |
-| worker blocked during I/O | yes | no — it interleaves |
-| WebSockets, SSE, HTTP/2 push | **impossible** | yes |
+| shape | one request in, one response out | that, **plus** connections that stay open |
+| is the worker stuck during I/O? | yes | no — it can work on other requests |
+| WebSockets, server-sent events, HTTP/2 push | **impossible** | yes |
 | servers | gunicorn, uWSGI | uvicorn, daphne, hypercorn |
 
-WSGI has no way to *say* "this connection stays open, messages flow both ways."
-Not slow at it — structurally incapable. Hence Django Channels, hence `asgi.py`.
+WSGI has no way to even *describe* "this connection stays open and messages flow
+both ways". It is not slow at it — it simply cannot say it. That is why Django
+Channels exists, and why `asgi.py` appeared.
 
-**One-liners to have ready:**
-> **WSGI** — the synchronous Python↔webserver contract: one request in, one
-> response out, worker blocked throughout.
-> **ASGI** — the async successor: a worker interleaves many in-flight requests
-> while awaiting I/O, and can carry long-lived protocols WSGI can't represent.
+**One-line answers to have ready:**
 
-**Trap for later:** ASGI only helps if the code is *actually* async. One
-blocking DB call inside an `async def` view stalls the whole event loop — worse
-than WSGI. See Python Interlude IV.
+> **WSGI** — the older, synchronous agreement between Python and the web server.
+> One request in, one response out, and the worker is busy the whole time.
+>
+> **ASGI** — the async replacement. One worker can juggle many requests while
+> waiting on I/O, and it can carry long-lived connections like WebSockets.
 
-### Q3 ✅ `include()` — had it
+**A trap for later:** ASGI only helps if your code is *actually* async. One
+blocking database call inside an `async def` view freezes the whole event loop —
+which is worse than WSGI. See Python Interlude IV.
 
-Keeps each app's URLs in the app. Worth adding: the mount point lives in **one
-line**, so `path("api/v2/", include("tasks.urls"))` moves every URL at once
-(cheap API versioning); and `app_name` namespaces names so two apps can both
-have `detail` → `reverse("tasks:detail")`. Clincher: third-party apps ship their
-own `urls.py` — `include()` is the only way to mount DRF or the admin.
+### Q3 ✅ Why `include()` — I had this
 
-### Q4 ✅ trailing slash / `APPEND_SLASH` — had it
+It keeps each app's URLs inside the app.
 
-Worth adding: it lives in **`CommonMiddleware`** (default `True`), redirects
-only when the slash-less URL *doesn't* match and the slashed one *does*, and
-it's a **301**.
+Worth adding: the prefix lives in **one line**, so
+`path("api/v2/", include("tasks.urls"))` moves every URL in the app at once —
+cheap API versioning. And `app_name` adds a namespace, so two apps can both have
+a URL called `detail`: `reverse("tasks:detail")`.
 
-**The gotcha:** browsers turn a redirected POST into a GET and **drop the body**.
-So POSTing to `/api/tasks/5` silently becomes a GET of `/api/tasks/5/` — 200 OK,
-payload gone, nothing errored. Django refuses to be quiet about it under
-`DEBUG=True`:
+The clincher: apps you install from pip ship their own `urls.py`. `include()` is
+the only way to mount DRF or the admin.
+
+### Q4 ✅ Trailing slash and `APPEND_SLASH` — I had this
+
+Worth adding: it lives in **`CommonMiddleware`** and defaults to `True`. It only
+redirects when the URL without the slash does **not** match and the one with the
+slash **does**. And it is a **301**.
+
+**The trap:** browsers turn a redirected POST into a GET and **throw the body
+away**. So a POST to `/api/tasks/5` quietly becomes a GET of `/api/tasks/5/`.
+You get a 200. Your data is gone. Nothing errored.
+
+Django refuses to stay quiet about this when `DEBUG=True`:
 
 > "You called this URL via POST, but the URL doesn't end in a slash and you have
 > `APPEND_SLASH` set. Django can't redirect to the slash URL while maintaining
 > POST data."
 
-`APPEND_SLASH = False` → plain 404. Stricter, arguably more honest for an API.
+Setting `APPEND_SLASH = False` gives a plain 404 instead. Stricter, and arguably
+more honest for an API.
 
 ---
 
-## Side questions that came up
+## Side question: running two API versions at once
 
-**Running two API versions at once.** Mount the same app twice:
+Mount the same app twice, under different prefixes:
 
 ```python
 path("api/v1/", include("tasks.urls_v1", namespace="v1")),
 path("api/v2/", include("tasks.urls_v2", namespace="v2")),
 ```
 
-Separate `urls_*`/`views_*` modules, **shared `models.py`** — one schema, one
-migration history. The rule: **version the representation, not the data.** Only
-the view/serializer layer forks; v2 usually imports v1's logic and changes the
-output shape.
+Separate `urls_*` and `views_*` files, but **one shared `models.py`**. One
+schema, one migration history.
 
-Two warnings: have a **deprecation plan before creating v2** (teams that don't
-maintain five versions forever), and once on DRF, `URLPathVersioning` gives
-`request.version` inside a *single* view — better for small differences, while
-separate modules suit a real redesign.
+**The rule: version the output, not the data.** Only the view and serializer
+layer splits in two. v2 usually imports v1's logic and just changes the shape of
+the response.
+
+Two warnings:
+
+- **Decide how v1 will die before you create v2.** Teams that skip this end up
+  maintaining five versions forever.
+- Once on DRF, `URLPathVersioning` gives you `request.version` inside a *single*
+  view. Better when the differences are small. Separate files are better when v2
+  is a genuine redesign.
+
+---
+
+## Still open for Phase 1
+
+- [ ] `wsgi.py` vs `asgi.py` — what actually serves the request
+- [ ] **Drill 1 retest** — Q1, Q2, Q5, from memory
